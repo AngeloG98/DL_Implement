@@ -21,7 +21,8 @@ def load_images_labels(imagefile, labelfile):
             raise ValueError('Magic number mismatch, expected 2051, got {}'.format(magic))
         image_data = array("B", file.read())
     for i in range(size):
-        images.append(np.array(image_data[i * rows * cols:(i + 1) * rows * cols]).reshape(rows * cols,1))
+        #Normalization : /255 very important!
+        images.append(np.array(image_data[i * rows * cols:(i + 1) * rows * cols]).reshape(rows * cols,1)/255) 
     return images, labels
 
 def onehot_10(labels):
