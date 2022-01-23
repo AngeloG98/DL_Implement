@@ -1,5 +1,6 @@
 import numpy as np
 
+#fully connected feedforward neuron network
 class FNN():
     def __init__(self, size) -> None:
         # for example: size = [784,30,10]

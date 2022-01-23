@@ -1,4 +1,5 @@
 import struct
+from zipfile import ZipExtFile
 import numpy as np
 from array import array
 from sklearn.model_selection import train_test_split
@@ -21,20 +22,18 @@ def load_images_labels(imagefile, labelfile):
             raise ValueError('Magic number mismatch, expected 2051, got {}'.format(magic))
         image_data = array("B", file.read())
     for i in range(size):
-        #Normalization : /255 very important!
-        #otherwise it may cause some gradient problems in the sigmoid activation func part.
-        images.append(np.array(image_data[i * rows * cols:(i + 1) * rows * cols]).reshape(rows * cols,1)/255) 
-    return images, labels
+        images.append(np.array(image_data[i * rows * cols:(i + 1) * rows * cols]).reshape(rows, cols, 1)) 
+    return np.array(images), np.array(labels)
 
 def onehot_10(labels):
     labels_onehot = []
     for lab in labels:
-        lab_onehot = np.zeros((10,1))
+        lab_onehot = np.zeros(10)
         lab_onehot[lab] = 1.0
         labels_onehot.append(lab_onehot)
     return np.array(labels_onehot)
 
-def mnist_process():
+def mnist_process_conv():
     train_imagefile = '0_dataset/MNIST/train-images.idx3-ubyte'
     train_labelfile = '0_dataset/MNIST/train-labels.idx1-ubyte'
     test_imagefile = '0_dataset/MNIST/t10k-images.idx3-ubyte'
@@ -46,7 +45,8 @@ def mnist_process():
     #for train set, use onehot label
     train_labels_onehot = onehot_10(train_labels)
     #zip
-    train_dataset = list(zip(train_images,train_labels_onehot))
+    train_dataset = list(zip(train_images,train_labels_onehot)) # -> zip( (50000, 28, 28, 1) , (50000, 10) )
     valid_dataset = list(zip(valid_images,valid_labels))
     test_dataset = list(zip(test_images,test_labels))
     return train_dataset, valid_dataset, test_dataset
+
