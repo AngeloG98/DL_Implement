@@ -16,9 +16,10 @@ class Softmax:
         self.predict(predict)
         loss = 0
         delta = np.zeros(predict.shape)
+        epsilon = 1e-5  
         for i in range(batchsize):
             delta[i] = self.softmax[i] - label[i]
-            loss -= np.sum(np.log(self.softmax[i]) * label[i])
+            loss -= np.sum(np.log(self.softmax[i] + epsilon) * label[i])
         loss /= batchsize
         return loss, delta
 
@@ -84,7 +85,7 @@ class Conv:
         wk, hk, dk, nk = self.kernel.shape
         wfeature = (wx - wk)//self.stride + 1
         hfeature = (hx - hk)//self.stride + 1
-        image_col = np.zeros((wfeature*hfeature, wk*hk*dk))
+        image_col = np.zeros((wfeature*hfeature, wk*hk*dx))
         for dxi in range(dx):
             one_channel = np.zeros((wfeature*hfeature, wk*hk))
             idx = 0
@@ -122,7 +123,7 @@ class Conv:
 
         delta_col = delta.reshape(bd, -1, dd)
         for i in range(bx): 
-            self.kernel_gradient += np.dot(self.x_col_list[i], delta_col[i]).reshape(self.kernel_gradient.shape)
+            self.kernel_gradient += np.dot(self.x_col_list[i].T, delta_col[i]).reshape(self.kernel_gradient.shape)
         self.kernel_gradient /= bx
         self.bias_gradient += np.sum(delta_col, axis=(0,1))
         self.bias_gradient /= bx
@@ -132,7 +133,7 @@ class Conv:
 
         delta_backward = np.zeros(self.x.shape)
         kernel_rot = np.rot90(self.kernel, 2)
-        kernel_rot_col = kernel_rot.reshape(-1, nk)
+        kernel_rot_col = kernel_rot.reshape(-1, dk) 
 
         if hd - hk + 1 != hx:
             pad = (hx - hd + hk - 1) // 2
@@ -162,7 +163,8 @@ class Pool:
         return feature
 
     def backward(self, delta):
-        np.repeat(np.repeat(delta, 2, axis=1), 2, axis=2) * self.feature_mask
+        delta_backward = np.repeat(np.repeat(delta, 2, axis=1), 2, axis=2) * self.feature_mask
+        return delta_backward
 
 
 class CNN:
@@ -184,13 +186,14 @@ class CNN:
         self.relu1 = Relu()
         self.pool1 = Pool() 
         self.conv2 = Conv(kernel_size=(5, 5, 6, 16))
-        self.relu1 = Relu()
+        self.relu2 = Relu()
         self.pool2 = Pool() 
-        self.fcn = Fcn(256, 10)
+        self.fcn = Fcn((256, 10))
         self.softmax = Softmax()
     
-    def train(self, train_X, train_Y, batchsize=32, lr=0.01, epochs=10):
+    def train(self, train_X, train_Y, valid_X, valid_Y, batchsize=32, lr=0.01, epochs=10):
         for epoch in range(epochs):
+            
             for i in range(0, train_X.shape[0], batchsize):
                 X = train_X[i:i + batchsize]
                 Y = train_Y[i:i + batchsize]
@@ -202,12 +205,11 @@ class CNN:
                 predict = self.relu2.forward(predict)
                 predict = self.pool2.forward(predict)
                 predict = predict.reshape(batchsize, -1)
-                predict = self.nn.forward(predict)
+                predict = self.fcn.forward(predict)
 
 
                 loss, delta = self.softmax.cal_loss(predict, Y)
-
-                delta = self.nn.backward(delta, lr)
+                delta = self.fcn.backward(delta, lr)
                 delta = delta.reshape(batchsize, 4, 4, 16)
                 delta = self.pool2.backward(delta)
                 delta = self.relu2.backward(delta)
@@ -216,10 +218,57 @@ class CNN:
                 delta = self.relu1.backward(delta)
                 self.conv1.backward(delta, lr)
 
-                print("Epoch-{}-{:05d}".format(str(epoch), i), ":", "loss:{:.4f}".format(loss))
+                print("epoch: {}, batch: {}, loss: {:.4f}".format(epoch, i, loss))
+                
+                if i%11200 == 0 and i != 0:
+                    self.save(epoch)
+                    # lr /= 5
+                    # print("change learning rate :{}".format(lr))
+                if i%128 == 0 and i != 0:
+                    state = np.random.get_state()
+                    np.random.shuffle(valid_X)
+                    np.random.set_state(state)
+                    np.random.shuffle(valid_Y)
+                    self.eval(valid_X[:50], valid_Y[:50])
 
-            lr *= 0.95 ** (epoch + 1)
+            # lr *= 0.95 ** (epoch + 1)
+            self.save(epoch)
     
-    def save(self):
-        np.savez("simple_cnn_model.npz", \
+    def save(self, epoch):
+        np.savez("2_CNN_mnist/mnist_cnn_model_"+str(epoch)+".npz", \
         k1=self.conv1.kernel, b1=self.conv1.bias, k2=self.conv2.kernel, b2=self.conv2.bias, w3=self.fcn.weight, b3=self.fcn.bias)
+    
+    def eval(self, test_X, test_Y, pre_train = False, filename = None):
+        if pre_train == True:
+            model = np.load(filename)
+            self.conv1.kernel = model["k1"]
+            self.conv1.bias = model["b1"]
+            self.conv2.kernel = model["k2"]
+            self.conv2.bias = model["b2"]
+            self.fcn.weight = model["w3"]
+            self.fcn.bias = model["b3"]
+
+        test_size = test_X.shape[0]
+        num = 0
+
+        for i in range(test_size):
+            X = test_X[i]
+            X = X[np.newaxis, :]
+            Y = test_Y[i]
+
+            predict = self.conv1.forward(X)
+            predict = self.relu1.forward(predict)
+            predict = self.pool1.forward(predict)
+            predict = self.conv2.forward(predict)
+            predict = self.relu2.forward(predict)
+            predict = self.pool2.forward(predict)
+            predict = predict.reshape(1, -1)
+            predict = self.fcn.forward(predict)
+            predict = self.softmax.predict(predict)
+
+            if np.argmax(predict) == Y:
+                num += 1
+            if i%1000 == 0 and i!=0:
+                print("Processing, {} done...".format(i))
+
+        print("accuracy rate: {}%".format(num / test_size * 100))
