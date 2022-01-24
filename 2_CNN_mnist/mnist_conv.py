@@ -48,5 +48,5 @@ def mnist_process_conv():
     train_dataset = list(zip(train_images,train_labels_onehot)) # -> zip( (50000, 28, 28, 1) , (50000, 10) )
     valid_dataset = list(zip(valid_images,valid_labels))
     test_dataset = list(zip(test_images,test_labels))
-    return train_dataset, valid_dataset, test_dataset
+    return train_images, train_labels_onehot, valid_images, valid_labels, test_images, test_labels
 
