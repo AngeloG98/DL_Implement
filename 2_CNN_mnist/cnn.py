@@ -235,7 +235,7 @@ class CNN:
             self.save(epoch)
     
     def save(self, epoch):
-        np.savez("2_CNN_mnist/mnist_cnn_model_"+str(epoch)+".npz", \
+        np.savez("2_CNN_mnist/model/mnist_cnn_model_"+str(epoch)+".npz", \
         k1=self.conv1.kernel, b1=self.conv1.bias, k2=self.conv2.kernel, b2=self.conv2.bias, w3=self.fcn.weight, b3=self.fcn.bias)
     
     def eval(self, test_X, test_Y, pre_train = False, filename = None):
