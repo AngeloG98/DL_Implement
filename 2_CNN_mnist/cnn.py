@@ -119,7 +119,7 @@ class Conv:
         bd, dd, wd, hd = delta.shape
         bx, dx, wx, hx = self.x.shape
         nk, dk, wk, hk = self.kernel.shape
-
+        # set gradient zero !!!
         self.kernel_gradient = np.zeros(self.kernel_gradient.shape)
         self.bias_gradient = np.zeros(self.bias_gradient.shape)
         delta_col = delta.reshape(bd, dd, -1).transpose((0,2,1)) # transpose: delta_depth <-> delta_w*delta_h
