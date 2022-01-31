@@ -27,8 +27,10 @@ class RNN:
         return x_softmax
 
     def forward(self, input, target):
+        # resest
         self.x_seq, self.h_seq, self.y_pred, self.p_pred = {}, {}, {}, {} # cause of [-1], use dict here
         self.h_seq[-1] = self.hidden_init
+        self.loss = 0
 
         for t in range(input.shape[0]):
             self.x_seq[t] = np.zeros((self.in_size, 1))
@@ -37,8 +39,22 @@ class RNN:
             self.y_pred[t] = np.dot(self.W_hy, self.h_seq[t]) + self.b_y
             self.p_pred[t] = self.softmax(self.y_pred[t])
 
+            y_label = np.zeros((self.out_size, 1))
+            y_label[target[t]] = 1
+            self.loss += np.sum(-np.log(self.p_pred[t]) * y_label) # cross-entropy loss
         
+    def backward(self, input):
+        # reset
+        self.dW_xh = np.zeros(self.W_xh.shape)
+        self.dW_hh = np.zeros(self.W_hh.shape)
+        self.dW_hy = np.zeros(self.W_hy.shape)
+        self.db_h = np.zeros(self.b_h.shape)
+        self.db_y = np.zeros(self.b_y.shape)
 
-    def backward(self, x):
-        pass
+        for t in reversed(range(input.shape[0])):
+            pass
+
+        # backprop through layer
+
+        # backprop through time
 
