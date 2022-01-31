@@ -20,5 +20,5 @@ if __name__ == "__main__":
     # plt.show()
 
     cnn = CNN()
-    # cnn.train(train_X, train_Y, valid_X, valid_Y)
-    cnn.eval(test_X, test_Y, pre_train = True, filename = "2_CNN_mnist/model/mnist_cnn_model_2.npz")
+    cnn.train(train_X, train_Y, valid_X, valid_Y)
+    # cnn.eval(test_X, test_Y, pre_train = True, filename = "2_CNN_mnist/model/mnist_cnn_model_2.npz")
