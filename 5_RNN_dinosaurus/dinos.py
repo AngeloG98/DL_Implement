@@ -16,14 +16,5 @@ def read_dinos(filename):
 
     return char_to_ix, ix_to_char, words
 
-if __name__ == "__main__":
-    char_to_ix, ix_to_char, words = read_dinos('0_dataset/Dinosaurs/dinos.txt')
-    print(char_to_ix['\n'])
-    # print(ix_to_char)
-    data = words[0]
-    X = [None] + [char_to_ix[ch] for ch in data]
-    Y = X[1:] + [char_to_ix["\n"]]
-    print(X)
-    print(X[1:] + [char_to_ix["\n"]])
 
     

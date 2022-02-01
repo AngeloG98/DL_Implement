@@ -8,8 +8,8 @@ class RNN:
         self.W_xh = np.random.randn(hidden_size, in_size) * 0.01
         self.W_hh = np.random.randn(hidden_size, hidden_size) * 0.01
         self.W_hy = np.random.randn(out_size, hidden_size) * 0.01
-        self.b_h = np.random.randn(hidden_size, 1) * 0.01
-        self.b_y = np.random.randn(out_size, 1) * 0.01
+        self.b_h = np.random.randn(hidden_size, 1)
+        self.b_y = np.random.randn(out_size, 1)
 
         self.dW_xh = np.zeros(self.W_xh.shape)
         self.dW_hh = np.zeros(self.W_hh.shape)
@@ -57,7 +57,7 @@ class RNN:
         self.dW_hy = np.zeros(self.W_hy.shape)
         self.db_h = np.zeros(self.b_h.shape)
         self.db_y = np.zeros(self.b_y.shape)
-        # dL_ht = np.zeros(self.hidden_init.shape)
+        dL_ht = np.zeros(self.hidden_init.shape)
         dhnext = np.zeros(self.hidden_init.shape)
 
         for t in reversed(range(len(input))):
@@ -67,29 +67,18 @@ class RNN:
             self.dW_hy += np.dot(dLt_yt, self.h_seq[t].T)
             self.db_y += dLt_yt
 
-            # backprop through time 1
-            # dLt_ht = np.dot(self.W_hy.T, dLt_yt)
-            # if t == len(input)-1:
-            #     dL_ht = dLt_ht
-            # else:
-            #     dhnext_h = np.dot(self.W_hh.T, (1 - self.h_seq[t+1] * self.h_seq[t+1]))
-            #     dL_ht = dLt_ht + dhnext_h * dL_ht
-            # dL_zt = (1 - self.h_seq[t] * self.h_seq[t]) * dL_ht
-            # self.dW_hh += np.dot(dL_zt, self.h_seq[t].T)
-            # self.dW_xh += np.dot(dL_zt, self.x_seq[t].T)
-            # self.db_h += dL_zt
-
-            # backprop through time 2
-            dh = np.dot(self.W_hy.T, dLt_yt) + dhnext # backprop into h. 
-            dhraw = (1 - self.h_seq[t] * self.h_seq[t]) * dh # backprop through tanh nonlinearity #tanh'(x) = 1-tanh^2(x)
+            # backprop through time (karpathy's code)
+            dh = np.dot(self.W_hy.T, dLt_yt) + dhnext 
+            dhraw = (1 - self.h_seq[t] * self.h_seq[t]) * dh 
             self.db_h += dhraw
             self.dW_xh += np.dot(dhraw, self.x_seq[t].T)
             self.dW_hh += np.dot(dhraw, self.h_seq[t-1].T)
             dhnext = np.dot(self.W_hh.T, dhraw)
+
         for dparam in [self.dW_xh, self.dW_hh, self.dW_hy, self.db_h, self.db_y]: 
             np.clip(dparam, -5, 5, out=dparam) # gradient clip
 
-    def train(self, train_data, ix_to_char, char_to_ix, batchsize=2, lr=0.1, epochs=30):
+    def train(self, train_data, ix_to_char, char_to_ix, batchsize=2, lr=0.1, epochs=100):
         mW_xh = np.zeros(self.W_xh.shape)
         mW_hh = np.zeros(self.W_hh.shape)
         mW_hy = np.zeros(self.W_hy.shape)
