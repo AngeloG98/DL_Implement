@@ -45,7 +45,7 @@ class CNN(nn.Module):
         return F.log_softmax(x,dim=1)
     
 def train(model, train_loader, optimizer, epoch, device, logging):
-    model.train()
+    # model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -57,7 +57,7 @@ def train(model, train_loader, optimizer, epoch, device, logging):
             print("epoch:{}, batch_idx:{}, loss:{}".format(epoch,batch_idx,loss.item()))
 
 def test(model, test_loader, device):
-    model.eval()
+    # model.eval()
     test_loss = 0
     correct = 0
     with torch.no_grad():
